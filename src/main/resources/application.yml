@@ -1,0 +1,58 @@
+server:
+  port: 8099
+
+spring:
+  application:
+    name: cron-sentinel
+
+  # ---------------------- 数据源 ----------------------
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 注意：先手动执行 schema.sql 建库建表；这里连接已存在的库
+    url: jdbc:mysql://localhost:3306/cron_sentinel?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
+
+  # ---------------------- 邮件 (SMTP) ----------------------
+  # 示例为 QQ 邮箱；163 邮箱 host 改为 smtp.163.com。
+  # password 填的是"授权码"，不是邮箱登录密码。
+  mail:
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:your_email@qq.com}
+    password: ${MAIL_PASSWORD:your_smtp_auth_code}
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          socketFactory:
+            class: javax.net.ssl.SSLSocketFactory
+
+  # 让 Thymeleaf 开发时不缓存模板
+  thymeleaf:
+    cache: false
+
+# ---------------------- MyBatis-Plus ----------------------
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: null
+
+# ---------------------- 应用自定义配置 ----------------------
+cron-sentinel:
+  # 告警邮件发件人显示地址（一般与 spring.mail.username 一致）
+  mail:
+    from: ${MAIL_USERNAME:your_email@qq.com}
+    enabled: ${MAIL_ENABLED:true}
+
+logging:
+  level:
+    com.cronsentinel: debug

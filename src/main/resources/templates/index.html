@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Cron Sentinel · 任务哨兵</title>
+    <style>
+        :root {
+            --bg: #0f1419;
+            --card: #1a2029;
+            --border: #2a313c;
+            --text: #e6e6e6;
+            --muted: #8a94a6;
+            --up: #2ecc71;
+            --down: #e74c3c;
+            --other: #7f8c8d;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 32px;
+        }
+        h1 { font-size: 24px; margin: 0 0 4px; }
+        .sub { color: var(--muted); margin-bottom: 24px; font-size: 14px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        th, td {
+            text-align: left;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+        th { color: var(--muted); font-weight: 600; background: #161b22; }
+        tr:last-child td { border-bottom: none; }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+        .UP { background: rgba(46,204,113,.15); color: var(--up); }
+        .DOWN { background: rgba(231,76,60,.15); color: var(--down); }
+        .NEW, .PAUSED { background: rgba(127,140,141,.18); color: var(--other); }
+        .name { font-weight: 600; }
+        .muted { color: var(--muted); }
+        .empty { text-align: center; padding: 40px; color: var(--muted); }
+        code { background: #161b22; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+        .topbar { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 24px; }
+        .nav a { color: #4aa3ff; text-decoration: none; font-size: 14px; }
+        .nav a:hover { text-decoration: underline; }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 18px;
+            margin-bottom: 20px;
+        }
+        .card h2 { font-size: 15px; margin: 0 0 14px; color: var(--text); }
+        form.create { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+        .field { display: flex; flex-direction: column; gap: 4px; }
+        .field label { font-size: 12px; color: var(--muted); }
+        .field input {
+            background: #0f1419;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            padding: 8px 10px;
+            font-size: 14px;
+            min-width: 150px;
+        }
+        .field input:focus { outline: none; border-color: #4aa3ff; }
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #fff;
+        }
+        .btn-primary { background: #2f6fed; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        .btn-warn { background: #b9770e; }
+        .btn-ok { background: #1f9d57; }
+        .btn-danger { background: #c0392b; }
+        .actions { display: flex; gap: 6px; align-items: center; }
+        .actions form { display: inline; }
+        .link { color: #4aa3ff; text-decoration: none; font-size: 12px; }
+        .link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div>
+            <h1>Cron Sentinel · 任务哨兵</h1>
+            <div class="sub">定时任务监控 · 心跳上报 / 超时告警</div>
+        </div>
+        <div class="nav"><a href="/logs">心跳记录日志 →</a></div>
+    </div>
+
+    <div class="card">
+        <h2>新建检查项</h2>
+        <form class="create" method="post" action="/web/checks">
+            <div class="field">
+                <label>名称</label>
+                <input type="text" name="name" placeholder="如：每日数据备份" required/>
+            </div>
+            <div class="field">
+                <label>预期周期(秒)</label>
+                <input type="number" name="periodSeconds" min="1" value="86400" required/>
+            </div>
+            <div class="field">
+                <label>宽限期(秒)</label>
+                <input type="number" name="graceSeconds" min="0" value="3600"/>
+            </div>
+            <div class="field">
+                <label>告警邮箱(可选)</label>
+                <input type="email" name="alertEmail" placeholder="you@example.com"/>
+            </div>
+            <button type="submit" class="btn-primary">创建</button>
+        </form>
+    </div>
+
+    <table>
+        <thead>
+        <tr>
+            <th>名称</th>
+            <th>状态</th>
+            <th>周期 / 宽限(秒)</th>
+            <th>最后心跳</th>
+            <th>下次预期</th>
+            <th>Token</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="c : ${checks}">
+            <td class="name" th:text="${c.name}">name</td>
+            <td>
+                <span class="badge" th:classappend="${c.status}">
+                    <span class="dot"></span>
+                    <span th:text="${c.status}">UP</span>
+                </span>
+            </td>
+            <td th:text="${c.periodSeconds} + ' / ' + ${c.graceSeconds}">86400 / 3600</td>
+            <td th:text="${c.lastPingAt != null} ? ${#strings.replace(c.lastPingAt, 'T', ' ')} : '—'" class="muted">—</td>
+            <td th:text="${c.nextExpectedAt != null} ? ${#strings.replace(c.nextExpectedAt, 'T', ' ')} : '—'" class="muted">—</td>
+            <td><code th:text="${c.token}">token</code></td>
+            <td>
+                <div class="actions">
+                    <a class="link" th:href="@{/logs(checkId=${c.id})}">日志</a>
+                    <form th:if="${c.status != 'PAUSED'}" th:action="@{'/web/checks/' + ${c.id} + '/pause'}" method="post">
+                        <button type="submit" class="btn-sm btn-warn">暂停</button>
+                    </form>
+                    <form th:if="${c.status == 'PAUSED'}" th:action="@{'/web/checks/' + ${c.id} + '/resume'}" method="post">
+                        <button type="submit" class="btn-sm btn-ok">恢复</button>
+                    </form>
+                    <form th:action="@{'/web/checks/' + ${c.id} + '/delete'}" method="post"
+                          onsubmit="return confirm('确定删除该检查项？');">
+                        <button type="submit" class="btn-sm btn-danger">删除</button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(checks)}">
+            <td colspan="7" class="empty">暂无检查项，用上方表单创建一个吧。</td>
+        </tr>
+        </tbody>
+    </table>
+</body>
+</html>
