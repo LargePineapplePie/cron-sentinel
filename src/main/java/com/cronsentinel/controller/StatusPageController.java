@@ -1,6 +1,9 @@
 package com.cronsentinel.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cronsentinel.dto.CheckCreateRequest;
+import com.cronsentinel.dto.CheckUpdateRequest;
+import com.cronsentinel.dto.PingLogView;
 import com.cronsentinel.entity.CheckItem;
 import com.cronsentinel.service.CheckService;
 import com.cronsentinel.service.PingLogService;
@@ -11,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -36,13 +40,46 @@ public class StatusPageController {
         return "index";
     }
 
-    /** 心跳记录页 */
+    /** 心跳记录页：支持按检查项、时间范围筛选 + 分页 */
     @GetMapping("/logs")
-    public String logs(@RequestParam(required = false) Long checkId, Model model) {
-        model.addAttribute("logs", pingLogService.recent(checkId, 200));
+    public String logs(@RequestParam(required = false) Long checkId,
+                       @RequestParam(required = false) String startTime,
+                       @RequestParam(required = false) String endTime,
+                       @RequestParam(defaultValue = "1") long page,
+                       @RequestParam(defaultValue = "20") long size,
+                       Model model) {
+        LocalDateTime start = parseDateTime(startTime);
+        LocalDateTime end = parseDateTime(endTime);
+        if (size <= 0) {
+            size = 20;
+        }
+
+        Page<PingLogView> result = pingLogService.page(checkId, start, end, Math.max(1, page), size);
+
+        model.addAttribute("logs", result.getRecords());
+        model.addAttribute("page", result.getCurrent());
+        model.addAttribute("size", result.getSize());
+        model.addAttribute("total", result.getTotal());
+        model.addAttribute("pages", result.getPages());
         model.addAttribute("checks", checkService.list());
         model.addAttribute("selectedCheckId", checkId);
+        model.addAttribute("startTime", startTime);
+        model.addAttribute("endTime", endTime);
         return "logs";
+    }
+
+    /**
+     * 解析 datetime-local 输入（格式 yyyy-MM-ddTHH:mm）；空或非法返回 null。
+     */
+    private LocalDateTime parseDateTime(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(value.trim());
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /** 网页表单：新建检查项 */
@@ -57,6 +94,33 @@ public class StatusPageController {
         req.setGraceSeconds(graceSeconds);
         req.setAlertEmail(alertEmail);
         checkService.create(req);
+        return "redirect:/";
+    }
+
+    /** 编辑页：展示预填表单 */
+    @GetMapping("/web/checks/{id}/edit")
+    public String editPage(@PathVariable Long id, Model model) {
+        CheckItem item = checkService.getById(id);
+        if (item == null) {
+            return "redirect:/";
+        }
+        model.addAttribute("check", item);
+        return "edit";
+    }
+
+    /** 网页表单：保存编辑 */
+    @PostMapping("/web/checks/{id}/update")
+    public String updateFromForm(@PathVariable Long id,
+                                 @RequestParam String name,
+                                 @RequestParam Integer periodSeconds,
+                                 @RequestParam(required = false) Integer graceSeconds,
+                                 @RequestParam(required = false) String alertEmail) {
+        CheckUpdateRequest req = new CheckUpdateRequest();
+        req.setName(name);
+        req.setPeriodSeconds(periodSeconds);
+        req.setGraceSeconds(graceSeconds);
+        req.setAlertEmail(alertEmail);
+        checkService.update(id, req);
         return "redirect:/";
     }
 

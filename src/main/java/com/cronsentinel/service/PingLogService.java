@@ -1,6 +1,7 @@
 package com.cronsentinel.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cronsentinel.dto.PingLogView;
 import com.cronsentinel.entity.CheckItem;
 import com.cronsentinel.entity.PingLog;
@@ -8,6 +9,7 @@ import com.cronsentinel.mapper.CheckItemMapper;
 import com.cronsentinel.mapper.PingLogMapper;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,24 +29,35 @@ public class PingLogService {
     }
 
     /**
-     * 查询最近的心跳记录。
+     * 分页查询心跳记录，支持按检查项与时间范围过滤。
      *
-     * @param checkId 仅查某个检查项；为 null 时查全部
-     * @param limit   最多返回条数
+     * @param checkId  仅查某个检查项；为 null 时查全部
+     * @param start    起始时间（含）；为 null 不限
+     * @param end      结束时间（含）；为 null 不限
+     * @param pageNo   页码，从 1 开始
+     * @param pageSize 每页条数
      */
-    public List<PingLogView> recent(Long checkId, int limit) {
+    public Page<PingLogView> page(Long checkId, LocalDateTime start, LocalDateTime end,
+                                  long pageNo, long pageSize) {
         QueryWrapper<PingLog> wrapper = new QueryWrapper<>();
         if (checkId != null) {
             wrapper.eq("check_id", checkId);
         }
-        wrapper.orderByDesc("id").last("limit " + Math.max(1, limit));
-        List<PingLog> logs = pingLogMapper.selectList(wrapper);
+        if (start != null) {
+            wrapper.ge("created_at", start);
+        }
+        if (end != null) {
+            wrapper.le("created_at", end);
+        }
+        wrapper.orderByDesc("id");
 
-        // 取出涉及的检查项名称，做 id -> name 映射
+        Page<PingLog> result = pingLogMapper.selectPage(new Page<>(pageNo, pageSize), wrapper);
+
+        // id -> name 映射
         Map<Long, String> nameMap = checkItemMapper.selectList(null).stream()
                 .collect(Collectors.toMap(CheckItem::getId, CheckItem::getName, (a, b) -> a));
 
-        return logs.stream().map(log -> {
+        List<PingLogView> views = result.getRecords().stream().map(log -> {
             PingLogView v = new PingLogView();
             v.setId(log.getId());
             v.setCheckId(log.getCheckId());
@@ -54,5 +67,10 @@ public class PingLogService {
             v.setCreatedAt(log.getCreatedAt());
             return v;
         }).collect(Collectors.toList());
+
+        // 用同样的分页元信息构造视图分页对象
+        Page<PingLogView> viewPage = new Page<>(result.getCurrent(), result.getSize(), result.getTotal());
+        viewPage.setRecords(views);
+        return viewPage;
     }
 }

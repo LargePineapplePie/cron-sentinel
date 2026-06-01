@@ -18,13 +18,28 @@
         h1 { font-size: 24px; margin: 0 0 4px; }
         .sub { color: var(--muted); margin-bottom: 24px; font-size: 14px; }
         .topbar { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 20px; }
+        .nav { display: flex; align-items: center; gap: 14px; }
         .nav a { color: #4aa3ff; text-decoration: none; font-size: 14px; }
         .nav a:hover { text-decoration: underline; }
-        .filter { margin-bottom: 16px; display: flex; gap: 10px; align-items: center; }
-        select {
+        .refresh { color: var(--muted); user-select: none; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+        .refresh select { background: #0f1419; border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 8px; font-size: 13px; cursor: pointer; }
+        .refresh select:focus { outline: none; border-color: #4aa3ff; }
+        #countdown { font-size: 13px; color: var(--muted); min-width: 78px; }
+        .filter { margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+        .fitem { display: flex; flex-direction: column; gap: 4px; }
+        .fitem label { font-size: 12px; color: var(--muted); }
+        .filter input, .filter select {
             background: #0f1419; border: 1px solid var(--border); color: var(--text);
-            padding: 8px 10px; border-radius: 6px; font-size: 14px;
+            padding: 7px 9px; border-radius: 6px; font-size: 14px;
         }
+        .filter input:focus, .filter select:focus { outline: none; border-color: #4aa3ff; }
+        button { cursor: pointer; border: none; border-radius: 6px; padding: 8px 16px; font-size: 14px; font-weight: 600; color: #fff; }
+        .btn-primary { background: #2f6fed; }
+        a.reset { display: inline-flex; align-items: center; padding: 8px 14px; border-radius: 6px; background: #3a4250; color: #fff; text-decoration: none; font-size: 14px; }
+        .pager { margin-top: 16px; display: flex; align-items: center; gap: 12px; font-size: 14px; flex-wrap: wrap; }
+        .pager a { color: #4aa3ff; text-decoration: none; padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; }
+        .pager a:hover { border-color: #4aa3ff; }
+        .pager .disabled { color: #4a5160; padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; }
         table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 10px; overflow: hidden; }
         th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 14px; }
         th { color: var(--muted); font-weight: 600; background: #161b22; }
@@ -42,20 +57,52 @@
     <div class="topbar">
         <div>
             <h1>心跳记录日志</h1>
-            <div class="sub">最近 200 条 ping 记录</div>
+            <div class="sub">共 <span th:text="${total}">0</span> 条记录</div>
         </div>
-        <div class="nav"><a href="/">← 返回状态页</a></div>
+        <div class="nav">
+            <label class="refresh">自动刷新
+                <select id="refreshSelect">
+                    <option value="0">关闭</option>
+                    <option value="5">5 秒</option>
+                    <option value="15">15 秒</option>
+                    <option value="30">30 秒</option>
+                    <option value="60">60 秒</option>
+                </select>
+            </label>
+            <span id="countdown"></span>
+            <a href="/">← 返回状态页</a>
+        </div>
     </div>
 
     <form class="filter" method="get" action="/logs">
-        <span class="muted">按检查项筛选：</span>
-        <select name="checkId" onchange="this.form.submit()">
-            <option value="">全部</option>
-            <option th:each="c : ${checks}"
-                    th:value="${c.id}"
-                    th:text="${c.name}"
-                    th:selected="${selectedCheckId != null and selectedCheckId == c.id}">name</option>
-        </select>
+        <div class="fitem">
+            <label>检查项</label>
+            <select name="checkId">
+                <option value="">全部</option>
+                <option th:each="c : ${checks}"
+                        th:value="${c.id}"
+                        th:text="${c.name}"
+                        th:selected="${selectedCheckId != null and selectedCheckId == c.id}">name</option>
+            </select>
+        </div>
+        <div class="fitem">
+            <label>开始时间</label>
+            <input type="datetime-local" name="startTime" th:value="${startTime}"/>
+        </div>
+        <div class="fitem">
+            <label>结束时间</label>
+            <input type="datetime-local" name="endTime" th:value="${endTime}"/>
+        </div>
+        <div class="fitem">
+            <label>每页</label>
+            <select name="size">
+                <option value="20" th:selected="${size == 20}">20</option>
+                <option value="50" th:selected="${size == 50}">50</option>
+                <option value="100" th:selected="${size == 100}">100</option>
+            </select>
+        </div>
+        <button type="submit" class="btn-primary">筛选</button>
+        <a class="reset" href="/logs">重置</a>
     </form>
 
     <table>
@@ -79,5 +126,53 @@
         </tr>
         </tbody>
     </table>
+
+    <div class="pager" th:if="${total > 0}">
+        <span class="muted">第 <span th:text="${page}">1</span> / <span th:text="${pages}">1</span> 页</span>
+        <a th:if="${page > 1}"
+           th:href="@{/logs(checkId=${selectedCheckId}, startTime=${startTime}, endTime=${endTime}, size=${size}, page=1)}">首页</a>
+        <a th:if="${page > 1}"
+           th:href="@{/logs(checkId=${selectedCheckId}, startTime=${startTime}, endTime=${endTime}, size=${size}, page=${page - 1})}">上一页</a>
+        <span th:unless="${page > 1}" class="disabled">上一页</span>
+        <a th:if="${page < pages}"
+           th:href="@{/logs(checkId=${selectedCheckId}, startTime=${startTime}, endTime=${endTime}, size=${size}, page=${page + 1})}">下一页</a>
+        <span th:unless="${page < pages}" class="disabled">下一页</span>
+        <a th:if="${page < pages}"
+           th:href="@{/logs(checkId=${selectedCheckId}, startTime=${startTime}, endTime=${endTime}, size=${size}, page=${pages})}">末页</a>
+    </div>
+
+    <script>
+    (function () {
+        var KEY = 'cs-refresh-interval';
+        var sel = document.getElementById('refreshSelect');
+        var cd = document.getElementById('countdown');
+        var timer = null, left = 0, interval = 0;
+
+        function render() { cd.textContent = interval > 0 ? '(' + left + 's 后刷新)' : ''; }
+        function stop() { if (timer) { clearInterval(timer); timer = null; } cd.textContent = ''; }
+        function start() {
+            stop();
+            if (interval <= 0) return;
+            left = interval; render();
+            timer = setInterval(function () {
+                left--;
+                if (left <= 0) { location.reload(); return; }
+                render();
+            }, 1000);
+        }
+
+        var saved = localStorage.getItem(KEY);
+        interval = (saved === null) ? 15 : parseInt(saved, 10);
+        if (isNaN(interval)) interval = 15;
+        sel.value = String(interval);
+        start();
+
+        sel.addEventListener('change', function () {
+            interval = parseInt(sel.value, 10) || 0;
+            localStorage.setItem(KEY, interval);
+            start();
+        });
+    })();
+    </script>
 </body>
 </html>
