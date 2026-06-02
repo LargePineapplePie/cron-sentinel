@@ -5,9 +5,11 @@ import com.cronsentinel.dto.CheckCreateRequest;
 import com.cronsentinel.dto.CheckResponse;
 import com.cronsentinel.dto.CheckUpdateRequest;
 import com.cronsentinel.entity.CheckItem;
+import com.cronsentinel.security.CurrentUser;
 import com.cronsentinel.service.CheckService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -37,24 +39,28 @@ public class CheckController {
 
     @PostMapping
     public ResponseEntity<ApiResult<CheckResponse>> create(@Valid @RequestBody CheckCreateRequest req,
+                                                           @AuthenticationPrincipal CurrentUser user,
                                                            HttpServletRequest request) {
-        CheckItem item = checkService.create(req);
+        CheckItem item = checkService.create(user.getId(), req);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResult.ok(CheckResponse.from(item, baseUrl(request))));
     }
 
     @GetMapping
-    public ApiResult<List<CheckResponse>> list(HttpServletRequest request) {
+    public ApiResult<List<CheckResponse>> list(@AuthenticationPrincipal CurrentUser user,
+                                               HttpServletRequest request) {
         String base = baseUrl(request);
-        List<CheckResponse> list = checkService.list().stream()
+        List<CheckResponse> list = checkService.list(user.getId()).stream()
                 .map(i -> CheckResponse.from(i, base))
                 .collect(Collectors.toList());
         return ApiResult.ok(list);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResult<CheckResponse>> detail(@PathVariable Long id, HttpServletRequest request) {
-        CheckItem item = checkService.getById(id);
+    public ResponseEntity<ApiResult<CheckResponse>> detail(@PathVariable Long id,
+                                                           @AuthenticationPrincipal CurrentUser user,
+                                                           HttpServletRequest request) {
+        CheckItem item = checkService.getById(user.getId(), id);
         if (item == null) {
             return notFound();
         }
@@ -64,8 +70,9 @@ public class CheckController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResult<CheckResponse>> update(@PathVariable Long id,
                                                           @Valid @RequestBody CheckUpdateRequest req,
+                                                          @AuthenticationPrincipal CurrentUser user,
                                                           HttpServletRequest request) {
-        CheckItem item = checkService.update(id, req);
+        CheckItem item = checkService.update(user.getId(), id, req);
         if (item == null) {
             return notFound();
         }
@@ -73,8 +80,9 @@ public class CheckController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResult<Void>> delete(@PathVariable Long id) {
-        boolean ok = checkService.delete(id);
+    public ResponseEntity<ApiResult<Void>> delete(@PathVariable Long id,
+                                                  @AuthenticationPrincipal CurrentUser user) {
+        boolean ok = checkService.delete(user.getId(), id);
         if (!ok) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(ApiResult.fail(404, "检查项不存在"));
@@ -83,8 +91,10 @@ public class CheckController {
     }
 
     @PostMapping("/{id}/pause")
-    public ResponseEntity<ApiResult<CheckResponse>> pause(@PathVariable Long id, HttpServletRequest request) {
-        CheckItem item = checkService.pause(id);
+    public ResponseEntity<ApiResult<CheckResponse>> pause(@PathVariable Long id,
+                                                          @AuthenticationPrincipal CurrentUser user,
+                                                          HttpServletRequest request) {
+        CheckItem item = checkService.pause(user.getId(), id);
         if (item == null) {
             return notFound();
         }
@@ -92,8 +102,10 @@ public class CheckController {
     }
 
     @PostMapping("/{id}/resume")
-    public ResponseEntity<ApiResult<CheckResponse>> resume(@PathVariable Long id, HttpServletRequest request) {
-        CheckItem item = checkService.resume(id);
+    public ResponseEntity<ApiResult<CheckResponse>> resume(@PathVariable Long id,
+                                                           @AuthenticationPrincipal CurrentUser user,
+                                                           HttpServletRequest request) {
+        CheckItem item = checkService.resume(user.getId(), id);
         if (item == null) {
             return notFound();
         }

@@ -24,6 +24,8 @@ JDK 17 · Spring Boot 3.0.2 · MySQL 8.x · MyBatis-Plus · Lombok · spring-boo
 mysql -u root -p < src/main/resources/schema.sql
 ```
 
+如果是从旧版本数据库升级，先备份数据，再按 `src/main/resources/migration-user-system.sql` 的说明做手动迁移。
+
 3. 在 `src/main/resources/application.yml` 中配置数据源（或用环境变量覆盖）：
 
 ```yaml
@@ -75,9 +77,15 @@ java -jar target/cron-sentinel-0.0.1-SNAPSHOT.jar
 
 启动后访问状态页：<http://localhost:8080/>
 
+首次使用先访问 <http://localhost:8080/register> 注册账号，然后登录进入状态页。
+
+> 检查项管理接口和页面需要登录；`/ping/{token}`、`/ping/{token}/start`、`/ping/{token}/fail` 继续免登录，方便 crontab、脚本和 SDK 上报心跳。
+
 ## 四、用 curl 跑通完整流程
 
 ### 1. 创建检查项
+
+管理接口需要登录会话。MVP 阶段推荐先在网页端创建检查项；若使用 API，请携带登录后的 Cookie。
 
 ```bash
 curl -X POST http://localhost:8080/api/checks \

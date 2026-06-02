@@ -21,6 +21,10 @@
         .nav { display: flex; align-items: center; gap: 14px; }
         .nav a { color: #4aa3ff; text-decoration: none; font-size: 14px; }
         .nav a:hover { text-decoration: underline; }
+        .user { color: var(--muted); font-size: 14px; }
+        .logout { display: inline; }
+        .logout button { background: transparent; color: #4aa3ff; padding: 0; font-weight: 400; font-size: 14px; }
+        .logout button:hover { text-decoration: underline; }
         .refresh { color: var(--muted); user-select: none; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
         .refresh select { background: #0f1419; border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 8px; font-size: 13px; cursor: pointer; }
         .refresh select:focus { outline: none; border-color: #4aa3ff; }
@@ -71,6 +75,11 @@
             </label>
             <span id="countdown"></span>
             <a href="/">← 返回状态页</a>
+            <span class="user" th:text="${currentUser.displayName}">user</span>
+            <form class="logout" method="post" action="/logout">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit">退出</button>
+            </form>
         </div>
     </div>
 

@@ -38,9 +38,10 @@ public class PingLogService {
      * @param pageNo   页码，从 1 开始
      * @param pageSize 每页条数
      */
-    public Page<PingLogView> page(Long checkId, String type, LocalDateTime start, LocalDateTime end,
+    public Page<PingLogView> page(Long ownerUserId, Long checkId, String type, LocalDateTime start, LocalDateTime end,
                                   long pageNo, long pageSize) {
         QueryWrapper<PingLog> wrapper = new QueryWrapper<>();
+        wrapper.eq("owner_user_id", ownerUserId);
         if (checkId != null) {
             wrapper.eq("check_id", checkId);
         }
@@ -58,7 +59,9 @@ public class PingLogService {
         Page<PingLog> result = pingLogMapper.selectPage(new Page<>(pageNo, pageSize), wrapper);
 
         // id -> name 映射
-        Map<Long, String> nameMap = checkItemMapper.selectList(null).stream()
+        QueryWrapper<CheckItem> checkWrapper = new QueryWrapper<>();
+        checkWrapper.eq("owner_user_id", ownerUserId);
+        Map<Long, String> nameMap = checkItemMapper.selectList(checkWrapper).stream()
                 .collect(Collectors.toMap(CheckItem::getId, CheckItem::getName, (a, b) -> a));
 
         List<PingLogView> views = result.getRecords().stream().map(log -> {

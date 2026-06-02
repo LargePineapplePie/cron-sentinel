@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>登录 · Cron Sentinel</title>
+    <style>
+        :root {
+            --bg: #0f1419; --card: #1a2029; --border: #2a313c;
+            --text: #e6e6e6; --muted: #8a94a6; --primary: #2f6fed;
+            --danger: #e74c3c; --ok: #2ecc71;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg); color: var(--text); padding: 24px;
+        }
+        .card { width: 100%; max-width: 380px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+        h1 { font-size: 22px; margin: 0 0 6px; }
+        .sub { color: var(--muted); margin-bottom: 22px; font-size: 14px; }
+        .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+        .field label { font-size: 13px; color: var(--muted); }
+        .field input {
+            background: #0f1419; border: 1px solid var(--border); border-radius: 6px;
+            color: var(--text); padding: 10px 11px; font-size: 14px;
+        }
+        .field input:focus { outline: none; border-color: #4aa3ff; }
+        button { width: 100%; cursor: pointer; border: none; border-radius: 6px; padding: 10px 14px; font-size: 14px; font-weight: 700; color: #fff; background: var(--primary); }
+        .msg { border-radius: 6px; padding: 9px 10px; margin-bottom: 14px; font-size: 13px; }
+        .error { background: rgba(231,76,60,.14); color: var(--danger); }
+        .ok { background: rgba(46,204,113,.14); color: var(--ok); }
+        .footer { margin-top: 16px; color: var(--muted); font-size: 13px; text-align: center; }
+        a { color: #4aa3ff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Cron Sentinel</h1>
+        <div class="sub">登录后管理你的检查项</div>
+
+        <div class="msg error" th:if="${param.error}">邮箱或密码不正确</div>
+        <div class="msg ok" th:if="${message}" th:text="${message}">注册成功，请登录</div>
+        <div class="msg ok" th:if="${param.logout}">已退出登录</div>
+
+        <form method="post" action="/login">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <div class="field">
+                <label>邮箱</label>
+                <input type="email" name="email" required autofocus/>
+            </div>
+            <div class="field">
+                <label>密码</label>
+                <input type="password" name="password" required/>
+            </div>
+            <button type="submit">登录</button>
+        </form>
+
+        <div class="footer">还没有账号？<a href="/register">注册一个</a></div>
+    </div>
+</body>
+</html>

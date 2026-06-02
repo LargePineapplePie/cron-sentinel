@@ -17,6 +17,9 @@ public class PingLog {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    /** 所属用户 user_account.id */
+    private Long ownerUserId;
+
     /** 关联 check_item.id */
     private Long checkId;
 

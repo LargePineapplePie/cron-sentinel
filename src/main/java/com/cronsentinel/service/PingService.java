@@ -49,7 +49,7 @@ public class PingService {
         item.setUpdatedAt(now);
         checkItemMapper.updateById(item);
 
-        writeLog(item.getId(), PingType.SUCCESS, sourceIp);
+        writeLog(item.getOwnerUserId(), item.getId(), PingType.SUCCESS, sourceIp);
 
         // DOWN -> UP 时发送恢复通知
         if (wasDown) {
@@ -67,7 +67,7 @@ public class PingService {
         if (item == null) {
             return false;
         }
-        writeLog(item.getId(), PingType.START, sourceIp);
+        writeLog(item.getOwnerUserId(), item.getId(), PingType.START, sourceIp);
         return true;
     }
 
@@ -85,7 +85,7 @@ public class PingService {
         item.setUpdatedAt(LocalDateTime.now());
         checkItemMapper.updateById(item);
 
-        writeLog(item.getId(), PingType.FAIL, sourceIp);
+        writeLog(item.getOwnerUserId(), item.getId(), PingType.FAIL, sourceIp);
 
         // 仅在非 DOWN -> DOWN 时告警，避免重复轰炸
         if (!wasDown) {
@@ -102,9 +102,10 @@ public class PingService {
         return checkItemMapper.selectOne(wrapper);
     }
 
-    private void writeLog(Long checkId, String type, String sourceIp) {
+    private void writeLog(Long ownerUserId, Long checkId, String type, String sourceIp) {
         try {
             PingLog plog = new PingLog();
+            plog.setOwnerUserId(ownerUserId);
             plog.setCheckId(checkId);
             plog.setType(type);
             plog.setSourceIp(sourceIp);

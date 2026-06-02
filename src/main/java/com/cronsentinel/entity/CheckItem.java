@@ -17,6 +17,9 @@ public class CheckItem {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    /** 所属用户 user_account.id */
+    private Long ownerUserId;
+
     /** 检查项名称，如"每日数据备份" */
     private String name;
 

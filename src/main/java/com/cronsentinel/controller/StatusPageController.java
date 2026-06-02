@@ -5,8 +5,10 @@ import com.cronsentinel.dto.CheckCreateRequest;
 import com.cronsentinel.dto.CheckUpdateRequest;
 import com.cronsentinel.dto.PingLogView;
 import com.cronsentinel.entity.CheckItem;
+import com.cronsentinel.security.CurrentUser;
 import com.cronsentinel.service.CheckService;
 import com.cronsentinel.service.PingLogService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,9 +36,10 @@ public class StatusPageController {
 
     /** 首页：检查项列表 + 新建表单 */
     @GetMapping("/")
-    public String index(Model model) {
-        List<CheckItem> checks = checkService.list();
+    public String index(@AuthenticationPrincipal CurrentUser user, Model model) {
+        List<CheckItem> checks = checkService.list(user.getId());
         model.addAttribute("checks", checks);
+        model.addAttribute("currentUser", user);
         return "index";
     }
 
@@ -48,6 +51,7 @@ public class StatusPageController {
                        @RequestParam(required = false) String endTime,
                        @RequestParam(defaultValue = "1") long page,
                        @RequestParam(defaultValue = "20") long size,
+                       @AuthenticationPrincipal CurrentUser user,
                        Model model) {
         LocalDateTime start = parseDateTime(startTime);
         LocalDateTime end = parseDateTime(endTime);
@@ -55,18 +59,19 @@ public class StatusPageController {
             size = 20;
         }
 
-        Page<PingLogView> result = pingLogService.page(checkId, type, start, end, Math.max(1, page), size);
+        Page<PingLogView> result = pingLogService.page(user.getId(), checkId, type, start, end, Math.max(1, page), size);
 
         model.addAttribute("logs", result.getRecords());
         model.addAttribute("page", result.getCurrent());
         model.addAttribute("size", result.getSize());
         model.addAttribute("total", result.getTotal());
         model.addAttribute("pages", result.getPages());
-        model.addAttribute("checks", checkService.list());
+        model.addAttribute("checks", checkService.list(user.getId()));
         model.addAttribute("selectedCheckId", checkId);
         model.addAttribute("selectedType", type);
         model.addAttribute("startTime", startTime);
         model.addAttribute("endTime", endTime);
+        model.addAttribute("currentUser", user);
         return "logs";
     }
 
@@ -89,20 +94,23 @@ public class StatusPageController {
     public String createFromForm(@RequestParam String name,
                                  @RequestParam Integer periodSeconds,
                                  @RequestParam(required = false) Integer graceSeconds,
-                                 @RequestParam(required = false) String alertEmail) {
+                                 @RequestParam(required = false) String alertEmail,
+                                 @AuthenticationPrincipal CurrentUser user) {
         CheckCreateRequest req = new CheckCreateRequest();
         req.setName(name);
         req.setPeriodSeconds(periodSeconds);
         req.setGraceSeconds(graceSeconds);
         req.setAlertEmail(alertEmail);
-        checkService.create(req);
+        checkService.create(user.getId(), req);
         return "redirect:/";
     }
 
     /** 编辑页：展示预填表单 */
     @GetMapping("/web/checks/{id}/edit")
-    public String editPage(@PathVariable Long id, Model model) {
-        CheckItem item = checkService.getById(id);
+    public String editPage(@PathVariable Long id,
+                           @AuthenticationPrincipal CurrentUser user,
+                           Model model) {
+        CheckItem item = checkService.getById(user.getId(), id);
         if (item == null) {
             return "redirect:/";
         }
@@ -116,34 +124,35 @@ public class StatusPageController {
                                  @RequestParam String name,
                                  @RequestParam Integer periodSeconds,
                                  @RequestParam(required = false) Integer graceSeconds,
-                                 @RequestParam(required = false) String alertEmail) {
+                                 @RequestParam(required = false) String alertEmail,
+                                 @AuthenticationPrincipal CurrentUser user) {
         CheckUpdateRequest req = new CheckUpdateRequest();
         req.setName(name);
         req.setPeriodSeconds(periodSeconds);
         req.setGraceSeconds(graceSeconds);
         req.setAlertEmail(alertEmail);
-        checkService.update(id, req);
+        checkService.update(user.getId(), id, req);
         return "redirect:/";
     }
 
     /** 网页表单：暂停 */
     @PostMapping("/web/checks/{id}/pause")
-    public String pause(@PathVariable Long id) {
-        checkService.pause(id);
+    public String pause(@PathVariable Long id, @AuthenticationPrincipal CurrentUser user) {
+        checkService.pause(user.getId(), id);
         return "redirect:/";
     }
 
     /** 网页表单：恢复 */
     @PostMapping("/web/checks/{id}/resume")
-    public String resume(@PathVariable Long id) {
-        checkService.resume(id);
+    public String resume(@PathVariable Long id, @AuthenticationPrincipal CurrentUser user) {
+        checkService.resume(user.getId(), id);
         return "redirect:/";
     }
 
     /** 网页表单：删除 */
     @PostMapping("/web/checks/{id}/delete")
-    public String delete(@PathVariable Long id) {
-        checkService.delete(id);
+    public String delete(@PathVariable Long id, @AuthenticationPrincipal CurrentUser user) {
+        checkService.delete(user.getId(), id);
         return "redirect:/";
     }
 }

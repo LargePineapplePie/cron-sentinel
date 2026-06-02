@@ -29,8 +29,9 @@ public class CheckService {
     /**
      * 创建检查项，自动生成 token。
      */
-    public CheckItem create(CheckCreateRequest req) {
+    public CheckItem create(Long ownerUserId, CheckCreateRequest req) {
         CheckItem item = new CheckItem();
+        item.setOwnerUserId(ownerUserId);
         item.setName(req.getName());
         item.setToken(UUID.randomUUID().toString().replace("-", ""));
         item.setPeriodSeconds(req.getPeriodSeconds());
@@ -45,14 +46,18 @@ public class CheckService {
         return item;
     }
 
-    public List<CheckItem> list() {
+    public List<CheckItem> list(Long ownerUserId) {
         QueryWrapper<CheckItem> wrapper = new QueryWrapper<>();
+        wrapper.eq("owner_user_id", ownerUserId);
         wrapper.orderByDesc("id");
         return checkItemMapper.selectList(wrapper);
     }
 
-    public CheckItem getById(Long id) {
-        return checkItemMapper.selectById(id);
+    public CheckItem getById(Long ownerUserId, Long id) {
+        QueryWrapper<CheckItem> wrapper = new QueryWrapper<>();
+        wrapper.eq("id", id);
+        wrapper.eq("owner_user_id", ownerUserId);
+        return checkItemMapper.selectOne(wrapper);
     }
 
     public CheckItem getByToken(String token) {
@@ -64,8 +69,8 @@ public class CheckService {
     /**
      * 更新检查项基本信息（非 null 字段才更新）。
      */
-    public CheckItem update(Long id, CheckUpdateRequest req) {
-        CheckItem item = checkItemMapper.selectById(id);
+    public CheckItem update(Long ownerUserId, Long id, CheckUpdateRequest req) {
+        CheckItem item = getById(ownerUserId, id);
         if (item == null) {
             return null;
         }
@@ -86,15 +91,18 @@ public class CheckService {
         return item;
     }
 
-    public boolean delete(Long id) {
-        return checkItemMapper.deleteById(id) > 0;
+    public boolean delete(Long ownerUserId, Long id) {
+        QueryWrapper<CheckItem> wrapper = new QueryWrapper<>();
+        wrapper.eq("id", id);
+        wrapper.eq("owner_user_id", ownerUserId);
+        return checkItemMapper.delete(wrapper) > 0;
     }
 
     /**
      * 暂停：置为 PAUSED，不再参与超时扫描。
      */
-    public CheckItem pause(Long id) {
-        CheckItem item = checkItemMapper.selectById(id);
+    public CheckItem pause(Long ownerUserId, Long id) {
+        CheckItem item = getById(ownerUserId, id);
         if (item == null) {
             return null;
         }
@@ -108,8 +116,8 @@ public class CheckService {
      * 恢复：从 PAUSED 恢复。
      * 若已收到过心跳则回到 UP（并重算 next_expected_at），否则回到 NEW。
      */
-    public CheckItem resume(Long id) {
-        CheckItem item = checkItemMapper.selectById(id);
+    public CheckItem resume(Long ownerUserId, Long id) {
+        CheckItem item = getById(ownerUserId, id);
         if (item == null) {
             return null;
         }
