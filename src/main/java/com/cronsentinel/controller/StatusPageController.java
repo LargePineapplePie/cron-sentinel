@@ -43,6 +43,7 @@ public class StatusPageController {
     /** 心跳记录页：支持按检查项、时间范围筛选 + 分页 */
     @GetMapping("/logs")
     public String logs(@RequestParam(required = false) Long checkId,
+                       @RequestParam(required = false) String type,
                        @RequestParam(required = false) String startTime,
                        @RequestParam(required = false) String endTime,
                        @RequestParam(defaultValue = "1") long page,
@@ -54,7 +55,7 @@ public class StatusPageController {
             size = 20;
         }
 
-        Page<PingLogView> result = pingLogService.page(checkId, start, end, Math.max(1, page), size);
+        Page<PingLogView> result = pingLogService.page(checkId, type, start, end, Math.max(1, page), size);
 
         model.addAttribute("logs", result.getRecords());
         model.addAttribute("page", result.getCurrent());
@@ -63,6 +64,7 @@ public class StatusPageController {
         model.addAttribute("pages", result.getPages());
         model.addAttribute("checks", checkService.list());
         model.addAttribute("selectedCheckId", checkId);
+        model.addAttribute("selectedType", type);
         model.addAttribute("startTime", startTime);
         model.addAttribute("endTime", endTime);
         return "logs";

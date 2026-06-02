@@ -86,6 +86,15 @@
             </select>
         </div>
         <div class="fitem">
+            <label>类型</label>
+            <select name="type">
+                <option value="">全部</option>
+                <option value="SUCCESS" th:selected="${selectedType == 'SUCCESS'}">SUCCESS</option>
+                <option value="START" th:selected="${selectedType == 'START'}">START</option>
+                <option value="FAIL" th:selected="${selectedType == 'FAIL'}">FAIL</option>
+            </select>
+        </div>
+        <div class="fitem">
             <label>开始时间</label>
             <input type="datetime-local" name="startTime" th:value="${startTime}"/>
         </div>
@@ -130,15 +139,15 @@
     <div class="pager" th:if="${total > 0}">
         <span class="muted">第 <span th:text="${page}">1</span> / <span th:text="${pages}">1</span> 页</span>
         <a th:if="${page > 1}"
-           th:href="@{/logs(checkId=${selectedCheckId}, startTime=${startTime}, endTime=${endTime}, size=${size}, page=1)}">首页</a>
+           th:href="@{/logs(checkId=${selectedCheckId}, type=${selectedType}, startTime=${startTime}, endTime=${endTime}, size=${size}, page=1)}">首页</a>
         <a th:if="${page > 1}"
-           th:href="@{/logs(checkId=${selectedCheckId}, startTime=${startTime}, endTime=${endTime}, size=${size}, page=${page - 1})}">上一页</a>
+           th:href="@{/logs(checkId=${selectedCheckId}, type=${selectedType}, startTime=${startTime}, endTime=${endTime}, size=${size}, page=${page - 1})}">上一页</a>
         <span th:unless="${page > 1}" class="disabled">上一页</span>
         <a th:if="${page < pages}"
-           th:href="@{/logs(checkId=${selectedCheckId}, startTime=${startTime}, endTime=${endTime}, size=${size}, page=${page + 1})}">下一页</a>
+           th:href="@{/logs(checkId=${selectedCheckId}, type=${selectedType}, startTime=${startTime}, endTime=${endTime}, size=${size}, page=${page + 1})}">下一页</a>
         <span th:unless="${page < pages}" class="disabled">下一页</span>
         <a th:if="${page < pages}"
-           th:href="@{/logs(checkId=${selectedCheckId}, startTime=${startTime}, endTime=${endTime}, size=${size}, page=${pages})}">末页</a>
+           th:href="@{/logs(checkId=${selectedCheckId}, type=${selectedType}, startTime=${startTime}, endTime=${endTime}, size=${size}, page=${pages})}">末页</a>
     </div>
 
     <script>

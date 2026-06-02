@@ -29,19 +29,23 @@ public class PingLogService {
     }
 
     /**
-     * 分页查询心跳记录，支持按检查项与时间范围过滤。
+     * 分页查询心跳记录，支持按检查项、类型与时间范围过滤。
      *
      * @param checkId  仅查某个检查项；为 null 时查全部
+     * @param type     仅查某种类型(SUCCESS/START/FAIL)；为 null/空 时查全部
      * @param start    起始时间（含）；为 null 不限
      * @param end      结束时间（含）；为 null 不限
      * @param pageNo   页码，从 1 开始
      * @param pageSize 每页条数
      */
-    public Page<PingLogView> page(Long checkId, LocalDateTime start, LocalDateTime end,
+    public Page<PingLogView> page(Long checkId, String type, LocalDateTime start, LocalDateTime end,
                                   long pageNo, long pageSize) {
         QueryWrapper<PingLog> wrapper = new QueryWrapper<>();
         if (checkId != null) {
             wrapper.eq("check_id", checkId);
+        }
+        if (type != null && !type.trim().isEmpty()) {
+            wrapper.eq("type", type.trim());
         }
         if (start != null) {
             wrapper.ge("created_at", start);
