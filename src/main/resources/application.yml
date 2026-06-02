@@ -8,8 +8,9 @@ spring:
   # ---------------------- 数据源 ----------------------
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    # 注意：先手动执行 schema.sql 建库建表；这里连接已存在的库
-    url: jdbc:mysql://localhost:3306/cron_sentinel?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    # 注意：先手动执行 schema.sql 建库建表；这里连接已存在的库。
+    # 部署时可用环境变量 DB_URL 覆盖（如 Docker 里指向 mysql 容器）。
+    url: ${DB_URL:jdbc:mysql://localhost:3306/cron_sentinel?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:123456}
 

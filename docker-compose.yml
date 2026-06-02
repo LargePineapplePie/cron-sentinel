@@ -1,0 +1,47 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: cron-sentinel-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+      MYSQL_DATABASE: cron_sentinel
+      TZ: Asia/Shanghai
+    ports:
+      # 仅本机调试需要时暴露；生产可去掉这行只让 app 内网访问
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 首次启动自动执行建表脚本
+      - ./src/main/resources/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-123456}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    image: cron-sentinel:latest
+    container_name: cron-sentinel-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      # 数据库：指向同一 compose 网络里的 mysql 服务
+      DB_URL: jdbc:mysql://mysql:3306/cron_sentinel?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+      # 邮件（按需修改；password 填 SMTP 授权码）
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+      MAIL_HOST: ${MAIL_HOST:-smtp.qq.com}
+      MAIL_PORT: ${MAIL_PORT:-465}
+      MAIL_USERNAME: ${MAIL_USERNAME:-your_email@qq.com}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-your_smtp_auth_code}
+      TZ: Asia/Shanghai
+    ports:
+      - "8099:8099"
+
+volumes:
+  mysql-data:
